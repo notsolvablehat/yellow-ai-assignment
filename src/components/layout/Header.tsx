@@ -1,0 +1,55 @@
+import { Search, SlidersHorizontal, Menu } from 'lucide-react';
+import { Kbd } from '../ui/kbd';
+
+interface HeaderProps {
+  onOpenSearch: () => void;
+  onToggleMobileMenu: () => void;
+}
+
+export function Header({ onOpenSearch, onToggleMobileMenu }: HeaderProps) {
+  return (
+    <header className="h-14 border-b border-border bg-card/80 backdrop-blur-xs flex items-center justify-between px-4 sticky top-0 z-30">
+      {/* Left: Mobile Toggle & Brand */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onToggleMobileMenu}
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden"
+          title="Open Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <h1 className="font-heading font-semibold text-lg text-foreground tracking-tight">
+          The Conversation Inbox
+        </h1>
+      </div>
+
+      {/* Middle: Searchbar with Filters inside right end */}
+      <div className="flex-1 max-w-md mx-4">
+        <button
+          onClick={onOpenSearch}
+          className="w-full h-9 px-3 rounded-full bg-background border border-input hover:border-primary/50 text-left text-sm text-muted-foreground flex items-center justify-between transition-colors shadow-2xs group"
+        >
+          <div className="flex items-center gap-2 overflow-hidden">
+            <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground shrink-0" />
+            <span className="truncate">Search...</span>
+            <Kbd className="text-[10px] px-1.5 py-0.5 hidden sm:inline-block">CTRL+K</Kbd>
+          </div>
+
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenSearch();
+            }}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground pl-2 border-l border-border shrink-0"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Filters</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Right: Clean spacing */}
+      <div className="w-8 lg:w-0" />
+    </header>
+  );
+}
