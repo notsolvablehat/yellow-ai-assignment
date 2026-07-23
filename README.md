@@ -55,14 +55,22 @@ The primary focus of this build was **Agent Speed and Context**. Instead of buil
 - `Ctrl + Enter` (in text area): Send reply AND automatically move to the next ticket
 - `Enter` (in text area): Send reply only
 
-## Architecture & Tradeoffs
+## Product & UX Tradeoffs
 
-- **Why MSW for Mocking?** Instead of hardcoding delays or hacking `setTimeout` in the API layer, MSW intercepts requests at the network level. This allowed me to easily build a "Debug Menu" (accessible via `Ctrl + M`) to simulate 200-500ms network latency, flaky connections, and outright 500 server errors on demand.
-- **Why React Query?** The app is heavily reliant on server state (tickets, messages). React Query natively handles caching, stale times, and loading/error states without the boilerplate of Redux or Context API.
-- **Strict Network Verification vs. Optimistic Updates:** On resolving a ticket, the UI waits for network confirmation rather than assuming success. Given that this tool deals with angry customers, verifying the state change with the server is prioritized over an immediate optimistic update that might silently roll back if the API fails.
-- **Tailwind & shadcn/ui:** Allowed for rapid iteration of a premium, accessible design system without writing hundreds of lines of custom CSS.
-- **On-Demand Write Path Failure (TKT-3381):** Ticket `TKT-3381` ("Charan Chai") is specifically configured in `db.ts` to fail on its first resolve attempt (returning a 500 error) and succeed on retry. This provides an on-demand write failure path for testing inline error feedback and recovery mechanisms.
+1. **Strict Network Verification vs. Optimistic Updates:** On resolving a ticket, the UI intentionally waits for server confirmation rather than optimistically removing the ticket. For AI-escalated tickets with high customer friction (e.g. billing disputes or churn risks), an unconfirmed optimistic removal that silently fails on the network creates lost tickets or duplicate customer outreach.
+2. **Auto-Advance Triage vs. Manual Navigation:** Resolving a ticket or sending a reply via `Ctrl + Enter` automatically advances agent focus to the next ticket in the queue. This prioritizes high-throughput queue clearing, assuming CX agents process escalated tickets sequentially.
+3. **Actionable AI (Human-in-the-Loop) vs. Automated Bot Replies:** Suggested AI replies require a 1-click "Use" action rather than automated sending. Since these tickets were escalated precisely because an automated bot failed or confused the customer, human agent review before sending is strictly enforced.
+4. **Focused Queue Views vs. Complex Filtering UI:** Scoped the primary navigation to "Inbox" (Action Required) and "Resolved" tabs, delegating tag/customer/content filtering to a quick search modal (`Ctrl + K`). This keeps the triage workspace clutter-free while leaving search fast and accessible.
+5. **Keyboard-First Hotkeys vs. Touch Gestures:** Prioritized keyboard shortcuts (`Ctrl + .`, `Ctrl + ↓/↑`, `Ctrl + Enter`) for high-speed desktop triage. Mobile view is fully responsive, but touch-swipe gestures were deliberately deferred to focus on keyboard productivity.
+6. **Debug Menu:** Added a debug menu to customise the error flow to help reviewers understand how the UI will respond on different reactions from the backend.
+
+## Architecture & Technical Tradeoffs
+
+- **Lightweight Queue Summaries vs. Heavy Ticket Detail Fetch:** The list pane fetches lightweight `TicketSummary` items (metadata, escalation reason, wait time), while heavy conversation logs, LTV, and AI summaries are fetched on-demand per ticket (`TicketDetail`). This ensures the inbox list renders instantaneously while keeping initial network payloads minimal.
+- **Why MSW for Mocking?** Instead of hardcoding delays or hacking `setTimeout` in the API layer, MSW intercepts requests at the network level. This allowed building a "Debug Menu" (`Ctrl + M`) to simulate network latency, flaky connections, and 500 server errors on demand.
+- **On-Demand Write Path Failure (TKT-3381):** Ticket `TKT-3381` ("Charan Chai") is explicitly configured in `db.ts` to fail on its first resolve attempt (returning a 500 error) and succeed on retry. This provides a deterministic on-demand write failure path for testing inline error recovery and UI feedback.
+- **State Management & React Query:** Leveraged TanStack React Query v5 for server state caching, stale time management, and query invalidation. Centralized mutation handlers in `App.tsx` ensure consistent error handling, toasts, and auto-advance across both keyboard shortcuts and mouse clicks.
 
 ## Time Spent
 
-- **Total Time:** ~2 evenings (~12 hours total) covering [figma designs](https://www.figma.com/design/PdlEwFx5Ag6r0L5937b8Gk/Designs-Explore?node-id=2659-1567&t=cbUlWmiq8ehr2Egt-1), architecture setup, MSW mocking, UI & accessibility polish, hotkey integration, and inline error recovery.
+- **Total Time:** ~2 evenings (~12 hours total) covering [Figma designs](https://www.figma.com/design/PdlEwFx5Ag6r0L5937b8Gk/Designs-Explore?node-id=2659-1567&t=cbUlWmiq8ehr2Egt-1), [Google Stitch designs](https://stitch.withgoogle.com/projects/6318458150133304811), architecture setup, MSW mocking, UI & accessibility polish, hotkey integration, and inline error recovery.
