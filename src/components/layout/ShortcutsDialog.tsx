@@ -7,7 +7,6 @@ import {
   Keyboard,
   AlertTriangle,
   RotateCcw,
-  ChevronDown,
 } from 'lucide-react';
 import {
   Dialog,
@@ -15,6 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../ui/select';
 import { Kbd, KbdGroup } from '../ui/kbd';
 import { Badge } from '../ui/badge';
 import {
@@ -273,9 +279,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
         {/* ── Footer hint ── */}
         <div className="px-5 py-2.5 bg-muted/30 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
           <span>
-            Press <Kbd className="text-[10px] px-1 py-0.5">?</Kbd> to open this dialog
-          </span>
-          <span>
             Press <Kbd className="text-[10px] px-1 py-0.5">Esc</Kbd> to close
           </span>
         </div>
@@ -335,6 +338,8 @@ function SimToggle({
   );
 }
 
+
+
 function ResolveModeSelect({
   value,
   onChange,
@@ -344,25 +349,26 @@ function ResolveModeSelect({
 }) {
   const colorClass =
     value === 'always-error'
-      ? 'text-rose-600 bg-rose-50 border-rose-200'
+      ? 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
       : value === 'flaky'
-      ? 'text-amber-600 bg-amber-50 border-amber-200'
-      : 'text-muted-foreground bg-muted/50 border-transparent';
+      ? 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300'
+      : 'text-foreground bg-muted/50 border-border';
 
   return (
-    <div className="relative inline-block">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as ResolveMode)}
-        className={`appearance-none pl-2.5 pr-7 py-1 text-[11px] font-semibold rounded-lg border cursor-pointer outline-none transition-colors ${colorClass}`}
-      >
+    <Select value={value} onValueChange={(val) => onChange(val as ResolveMode)}>
+      <SelectTrigger className={`w-[130px] h-7 text-[11px] font-semibold ${colorClass}`}>
+        <SelectValue placeholder="Select mode" />
+      </SelectTrigger>
+      <SelectContent align="end">
         {RESOLVE_MODE_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value} title={opt.description}>
-            {opt.label}
-          </option>
+          <SelectItem key={opt.value} value={opt.value}>
+            <div className="flex flex-col">
+              <span className="font-semibold text-xs">{opt.label}</span>
+              <span className="text-[10px] text-muted-foreground">{opt.description}</span>
+            </div>
+          </SelectItem>
         ))}
-      </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none text-current opacity-60" />
-    </div>
+      </SelectContent>
+    </Select>
   );
 }
