@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Search, X, SlidersHorizontal, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
+import { Search, X, Clock } from 'lucide-react';
 import { useSearchTickets } from '../../hooks/useSearch';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -15,29 +16,19 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
   const [query, setQuery] = useState('');
   const { data: results, isLoading } = useSearchTickets(query);
 
-  // Reset query on close
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery('');
-    }
-  }, [isOpen]);
+  const handleClose = () => {
+    setQuery('');
+    onClose();
+  };
 
-  // Handle ESC key press
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  // Close on ESC
+  useHotkeys('escape', handleClose, { enabled: isOpen, enableOnFormTags: true });
 
   if (!isOpen) return null;
 
   const handleSelect = (id: string) => {
     onSelectTicket(id);
-    onClose();
+    handleClose();
   };
 
   return (
@@ -45,7 +36,7 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Modal Card */}
@@ -71,14 +62,7 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
             </button>
           )}
           <button
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors border border-border/50 shrink-0"
-            title="Filter search"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Filters</span>
-          </button>
-          <button
-            onClick={onClose}
+            onClick={handleClose}
             className="ml-2 p-1 hover:bg-muted rounded-lg text-muted-foreground"
           >
             <X className="w-5 h-5" />

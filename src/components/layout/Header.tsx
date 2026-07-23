@@ -1,12 +1,13 @@
-import { Search, SlidersHorizontal, Menu } from 'lucide-react';
+import { Search, Menu, HelpCircle } from 'lucide-react';
 import { Kbd } from '../ui/kbd';
 
 interface HeaderProps {
   onOpenSearch: () => void;
   onToggleMobileMenu: () => void;
+  onOpenShortcuts: () => void;
 }
 
-export function Header({ onOpenSearch, onToggleMobileMenu }: HeaderProps) {
+export function Header({ onOpenSearch, onToggleMobileMenu, onOpenShortcuts }: HeaderProps) {
   return (
     <header className="h-14 border-b border-border bg-card/80 backdrop-blur-xs flex items-center justify-between px-4 sticky top-0 z-30">
       {/* Left: Mobile Toggle & Brand */}
@@ -46,15 +47,24 @@ export function Header({ onOpenSearch, onToggleMobileMenu }: HeaderProps) {
               onOpenSearch();
             }}
             className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground pl-2 border-l border-border shrink-0"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Filters</span>
+              >
+
           </div>
         </button>
       </div>
 
-      {/* Right: Clean spacing */}
-      <div className="w-8 lg:w-0" />
+      {/* Right: Shortcuts & Debug Button */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onOpenShortcuts}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors shadow-2xs"
+          title="Shortcuts & Debug Controls (?)"
+        >
+          <HelpCircle className="w-4 h-4 text-primary" />
+          <span className="hidden sm:inline">Debug / Shortcuts</span>
+          <Kbd className="text-[10px] px-1 py-0.5 ml-0.5">?</Kbd>
+        </button>
+      </div>
     </header>
   );
 }

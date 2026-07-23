@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 import {
   ArrowLeft,
   Send,
@@ -20,9 +21,13 @@ import { TicketSkeleton } from '../inbox/TicketSkeleton';
 interface TicketDetailViewProps {
   ticketId: string | null;
   onBackToInbox: () => void;
+  /** Move to the next ticket in the inbox list */
+  onSelectNextTicket: () => void;
+  /** Resolve the current ticket (delegates to App.tsx which knows the mutation) */
+  onResolveTicket: () => void;
 }
 
-export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewProps) {
+export function TicketDetailView({ ticketId, onBackToInbox, onSelectNextTicket, onResolveTicket }: TicketDetailViewProps) {
   const [replyText, setReplyText] = useState('');
   const [statusError, setStatusError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -32,6 +37,16 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
 
   const updateStatusMutation = useUpdateTicketStatus();
   const postMessageMutation = usePostMessage(ticketId ?? '');
+
+  // Ctrl+. → resolve current ticket (only active when a ticket is open and not already resolved)
+  useHotkeys(
+    'ctrl+period',
+    (e) => {
+      e.preventDefault();
+      onResolveTicket();
+    },
+    { enabled: Boolean(ticketId), enableOnFormTags: false }
+  );
 
   // Auto-scroll to bottom of conversation thread when messages update
   useEffect(() => {
@@ -85,20 +100,25 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
     updateStatusMutation.mutate(
       { id: ticket.id, status: newStatus },
       {
-        onError: (err: any) => {
-          const msg = err?.response?.data?.message || 'Failed to update status. Please try again.';
+        onError: (err: unknown) => {
+          const axiosError = err as { response?: { data?: { message?: string } } };
+          const msg = axiosError?.response?.data?.message || 'Failed to update status. Please try again.';
           setStatusError(msg);
         },
       }
     );
   };
 
-  const handleSendReply = (e: React.FormEvent) => {
-    e.preventDefault();
+  const sendReply = () => {
     if (!replyText.trim()) return;
     postMessageMutation.mutate(replyText.trim(), {
       onSuccess: () => setReplyText(''),
     });
+  };
+
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendReply();
   };
 
   const initials = ticket.customerName
@@ -330,9 +350,23 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => {
+                // Ctrl+Enter → send reply AND move to next ticket
+                if (e.key === 'Enter' && e.ctrlKey) {
+                  e.preventDefault();
+                  if (replyText.trim()) {
+                    postMessageMutation.mutate(replyText.trim(), {
+                      onSuccess: () => {
+                        setReplyText('');
+                        onSelectNextTicket();
+                      },
+                    });
+                  }
+                  return;
+                }
+                // Enter (no Shift) → send reply only
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  if (replyText.trim()) handleSendReply(e as any);
+                  if (replyText.trim()) sendReply();
                 }
               }}
               placeholder={`Reply to ${ticket.customerName}...`}
