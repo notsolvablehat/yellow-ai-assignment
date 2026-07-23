@@ -5,7 +5,7 @@ import type { TicketStatus, SortKey, PatchStatusBody, ApiErrorBody } from '../..
 
 const randomDelay = () => delay(200 + Math.floor(Math.random() * 300));
 
-const SIMULATED_FAILURE_RESPONSE = HttpResponse.json<ApiErrorBody>(
+const getSimulatedFailureResponse = () => HttpResponse.json<ApiErrorBody>(
   {
     error: 'RESOLVE_FAILED',
     message: 'Something went wrong updating this ticket. Please try again.',
@@ -53,19 +53,19 @@ export const ticketHandlers = [
 
     // Debug: global resolve failure overrides everything
     if (body.status === 'resolved' && debugStore.resolveFailure) {
-      return SIMULATED_FAILURE_RESPONSE;
+      return getSimulatedFailureResponse();
     }
 
     // Debug: per-ticket mode overrides
     if (body.status === 'resolved') {
       const mode = debugStore.perTicketMode[id] ?? 'normal';
       if (mode === 'always-error') {
-        return SIMULATED_FAILURE_RESPONSE;
+        return getSimulatedFailureResponse();
       }
       if (mode === 'flaky') {
         if (!debugStore.flakyHasFailed.has(id)) {
           debugStore.flakyHasFailed.add(id);
-          return SIMULATED_FAILURE_RESPONSE;
+          return getSimulatedFailureResponse();
         }
         // Second attempt: fall through to normal resolve
       }
@@ -82,7 +82,7 @@ export const ticketHandlers = [
         );
       }
       // db-level SIMULATED_FAILURE (original TKT-3381 flaky logic still works)
-      return SIMULATED_FAILURE_RESPONSE;
+      return getSimulatedFailureResponse();
     }
   }),
 ];

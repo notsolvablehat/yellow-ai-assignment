@@ -19,35 +19,7 @@ const queryClient = new QueryClient({
   },
 });
 
-interface ToastMessage {
-  id: number;
-  type: 'success' | 'error';
-  text: string;
-}
-
-let _toastId = 0;
-
-function ToastContainer({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
-  if (toasts.length === 0) return null;
-  return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          onClick={() => onDismiss(t.id)}
-          className={`pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium animate-in slide-in-from-bottom-2 fade-in cursor-pointer select-none ${
-            t.type === 'success'
-              ? 'bg-emerald-600 text-white'
-              : 'bg-rose-600 text-white'
-          }`}
-        >
-          <span className="text-base">{t.type === 'success' ? '✓' : '✕'}</span>
-          {t.text}
-        </div>
-      ))}
-    </div>
-  );
-}
+import { Toaster, toast } from 'sonner';
 
 function MainLayout() {
   const [activeTab, setActiveTab] = useState<NavTab>('inbox');
@@ -58,18 +30,6 @@ function MainLayout() {
   const [isShortcutsDialogOpen, setIsShortcutsDialogOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
-
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  const addToast = useCallback((type: 'success' | 'error', text: string) => {
-    const id = ++_toastId;
-    setToasts((prev) => [...prev, { id, type, text }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
-  }, []);
-
-  const dismissToast = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
 
   const ticketsParams = {
     status: activeTab === 'resolved' ? ('resolved' as const) : undefined,
@@ -124,19 +84,13 @@ function MainLayout() {
       { id: activeTicketId, status: 'resolved' },
       {
         onSuccess: () => {
-          addToast('success', 'Ticket resolved — moved to next');
+          toast.success('Ticket resolved — moved to next');
           // After resolve, auto-move to next ticket
           selectNextTicket();
         },
-        onError: (err: unknown) => {
-          const axiosError = err as { response?: { data?: { message?: string } } };
-          const msg =
-            axiosError?.response?.data?.message || 'Failed to resolve ticket. Please try again.';
-          addToast('error', msg);
-        },
       }
     );
-  }, [activeTicketId, tickets, updateStatusMutation, addToast, selectNextTicket]);
+  }, [activeTicketId, tickets, updateStatusMutation, selectNextTicket]);
 
   useHotkeys('ctrl+m', (e) => {
     e.preventDefault();
@@ -215,7 +169,7 @@ function MainLayout() {
       />
 
       {/* Toast notifications */}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <Toaster position="top-right" richColors />
 
       {/* Main Workspace Area */}
       <div className="flex flex-1 overflow-hidden">

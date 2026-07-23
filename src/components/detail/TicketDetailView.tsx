@@ -30,7 +30,6 @@ interface TicketDetailViewProps {
 
 export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSelectNextTicket, onResolveTicket }: TicketDetailViewProps) {
   const [replyText, setReplyText] = useState('');
-  const [statusError, setStatusError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const { data: ticket, isLoading: isTicketLoading, isError: isTicketError, refetch: refetchTicket } = useTicket(ticketId ?? undefined);
@@ -42,7 +41,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
   const [prevTicketId, setPrevTicketId] = useState(ticketId);
   if (ticketId !== prevTicketId) {
     setPrevTicketId(ticketId);
-    setStatusError(null);
     updateStatusMutation.reset();
   }
 
@@ -106,16 +104,8 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
   }
 
   const handleStatusChange = (newStatus: 'resolved' | 'snoozed' | 'open') => {
-    setStatusError(null);
     updateStatusMutation.mutate(
-      { id: ticket.id, status: newStatus },
-      {
-        onError: (err: unknown) => {
-          const axiosError = err as { response?: { data?: { message?: string } } };
-          const msg = axiosError?.response?.data?.message || 'Failed to update status. Please try again.';
-          setStatusError(msg);
-        },
-      }
+      { id: ticket.id, status: newStatus }
     );
   };
 
@@ -201,22 +191,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* Status error banner */}
-        {statusError && (
-          <div className="mx-4 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-              {statusError}
-            </span>
-            <button
-              onClick={() => handleStatusChange('resolved')}
-              className="font-semibold text-rose-700 hover:text-rose-900 underline ml-3 shrink-0"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
         {/* Escalation banner */}
         {ticket.escalationReason && (
           <div className="mx-4 mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
@@ -273,7 +247,7 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
                     <p className="leading-relaxed">{ticket.suggestedReply}</p>
                     <button
                       onClick={() => setReplyText(ticket.suggestedReply ?? '')}
-                      className="shrink-0 text-[11px] font-semibold text-primary hover:underline"
+                      className="shrink-0 text-[11px] font-semibold text-primary hover:underline bg-amber-400 rounded-2xl p-2"
                     >
                       Use
                     </button>

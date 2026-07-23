@@ -36,8 +36,8 @@ function SelectPortal({ ...props }: SelectPrimitive.Portal.Props) {
   return <SelectPrimitive.Portal data-slot="select-portal" {...props} />
 }
 
-function SelectPositioner({ ...props }: SelectPrimitive.Positioner.Props) {
-  return <SelectPrimitive.Positioner data-slot="select-positioner" sideOffset={4} {...props} />
+function SelectPositioner({ className, ...props }: SelectPrimitive.Positioner.Props) {
+  return <SelectPrimitive.Positioner data-slot="select-positioner" sideOffset={4} className={cn("z-[100]", className)} {...props} />
 }
 
 function SelectContent({
@@ -56,7 +56,7 @@ function SelectContent({
         <SelectPrimitive.Popup
           data-slot="select-content"
           className={cn(
-            "relative z-50 min-w-[8rem] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 p-1 outline-none",
+            "relative z-[100] min-w-[8rem] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 p-1 outline-none",
             className
           )}
           {...props}
