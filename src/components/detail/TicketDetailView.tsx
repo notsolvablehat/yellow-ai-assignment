@@ -10,41 +10,44 @@ import {
   Tag as TagIcon,
   UserCheck,
 } from 'lucide-react';
-import { useTicket, useUpdateTicketStatus } from '../../hooks/useTickets';
+import { useTicket } from '../../hooks/useTickets';
 import { useTicketMessages, usePostMessage } from '../../hooks/useMessages';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Marker, MarkerContent } from '../ui/marker';
 import { TicketSkeleton } from '../inbox/TicketSkeleton';
+import type { TicketStatus } from '../../types/ticket';
 
 interface TicketDetailViewProps {
   ticketId: string | null;
   isInboxLoading?: boolean;
   onBackToInbox: () => void;
-  /** Move to the next ticket in the inbox list */
   onSelectNextTicket: () => void;
-  /** Resolve the current ticket (delegates to App.tsx which knows the mutation) */
   onResolveTicket: () => void;
+  onStatusChange: (status: TicketStatus) => void;
+  isUpdatingStatus?: boolean;
+  updateStatusError?: Error | null;
 }
 
-export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSelectNextTicket, onResolveTicket }: TicketDetailViewProps) {
+export function TicketDetailView({
+  ticketId,
+  isInboxLoading,
+  onBackToInbox,
+  onSelectNextTicket,
+  onResolveTicket,
+  onStatusChange,
+  isUpdatingStatus = false,
+  updateStatusError = null,
+}: TicketDetailViewProps) {
   const [replyText, setReplyText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const { data: ticket, isLoading: isTicketLoading, isError: isTicketError, refetch: refetchTicket } = useTicket(ticketId ?? undefined);
   const { data: messages, isLoading: isMessagesLoading } = useTicketMessages(ticketId ?? undefined);
 
-  const updateStatusMutation = useUpdateTicketStatus();
   const postMessageMutation = usePostMessage(ticketId ?? '');
 
-  const [prevTicketId, setPrevTicketId] = useState(ticketId);
-  if (ticketId !== prevTicketId) {
-    setPrevTicketId(ticketId);
-    updateStatusMutation.reset();
-  }
-
-  // Ctrl+. → resolve current ticket (only active when a ticket is open and not already resolved)
   useHotkeys(
     'ctrl+period',
     (e) => {
@@ -54,14 +57,12 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
     { enabled: Boolean(ticketId), enableOnFormTags: false }
   );
 
-  // Auto-scroll to bottom of conversation thread when messages update
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // 1. Show skeleton while inbox is loading or individual ticket is loading
   if (isInboxLoading || (isTicketLoading && ticketId)) {
     return (
       <div className="flex-1 p-6 space-y-4 overflow-y-auto">
@@ -73,7 +74,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
     );
   }
 
-  // 2. Show empty state only when inbox is done loading and no ticket is selected
   if (!ticketId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
@@ -95,19 +95,13 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
         <h3 className="font-semibold text-base text-foreground">Failed to load ticket details</h3>
         <button
           onClick={() => refetchTicket()}
-          className="px-4 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-lg inline-flex items-center gap-1.5"
+          className="px-4 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-lg inline-flex items-center gap-1.5 cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Retry
         </button>
       </div>
     );
   }
-
-  const handleStatusChange = (newStatus: 'resolved' | 'snoozed' | 'open') => {
-    updateStatusMutation.mutate(
-      { id: ticket.id, status: newStatus }
-    );
-  };
 
   const sendReply = () => {
     if (!replyText.trim()) return;
@@ -130,17 +124,14 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
-
-      {/* ── Sticky top header ── */}
-      <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-border bg-card shadow-sm">
+      <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-border bg-card shadow-xs">
         <div className="flex items-center gap-3">
           <button
             onClick={onBackToInbox}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          {/* Avatar */}
           <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm ring-2 ring-primary/20">
             {initials}
           </div>
@@ -151,60 +142,68 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
             </p>
           </div>
         </div>
-        {/* Top Right Action: Resolve / Re-open Ticket */}
+
         <div>
-          {(() => {
-            const isUpdatingStatus =
-              updateStatusMutation.isPending &&
-              updateStatusMutation.variables?.id === ticket.id;
-            return ticket.status !== 'resolved' ? (
-              <button
-                type="button"
-                onClick={() => handleStatusChange('resolved')}
-                disabled={isUpdatingStatus}
-                className="px-3.5 py-1.5 text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 rounded-full transition-all shadow-xs inline-flex items-center gap-1.5 disabled:opacity-60"
-              >
-                {isUpdatingStatus ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                )}
-                <span>Resolve Issue</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleStatusChange('open')}
-                disabled={isUpdatingStatus}
-                className="px-3.5 py-1.5 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 rounded-full transition-colors inline-flex items-center gap-1.5 disabled:opacity-60"
-              >
-                {isUpdatingStatus ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : null}
-                <span>Re-open Ticket</span>
-              </button>
-            );
-          })()}
+          {ticket.status !== 'resolved' ? (
+            <button
+              type="button"
+              onClick={onResolveTicket}
+              disabled={isUpdatingStatus}
+              className="px-3.5 py-1.5 text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 rounded-full transition-all shadow-xs inline-flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
+            >
+              {isUpdatingStatus ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              <span>Resolve Issue</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onStatusChange('open')}
+              disabled={isUpdatingStatus}
+              className="px-3.5 py-1.5 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 rounded-full transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
+            >
+              {isUpdatingStatus ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : null}
+              <span>Re-open Ticket</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
+        {updateStatusError && (
+          <div className="mx-4 mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-3 text-xs text-rose-900 shadow-2xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span className="truncate">{updateStatusError.message || 'Failed to update ticket status. Please try again.'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={onResolveTicket}
+              className="px-3 py-1 bg-rose-600 text-white font-medium rounded-lg hover:bg-rose-700 transition-colors shrink-0 inline-flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+          </div>
+        )}
 
-        {/* Escalation banner */}
         {ticket.escalationReason && (
           <div className="mx-4 mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-sm text-amber-900">{ticket.escalationReason}</p>
               <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                Customer expressed frustration regarding previous support response. Prioritise empathetic and clear resolution.
+                Prioritise empathetic and clear resolution for AI-escalated inquiries.
               </p>
             </div>
           </div>
         )}
 
-        {/* Customer snapshot & AI summary card */}
         <div className="px-4 pt-4">
           <Card className="border border-border/70 shadow-none bg-card rounded-2xl overflow-hidden">
             <CardHeader className="border-b border-border/60 py-3 px-4">
@@ -214,7 +213,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
-              {/* Stats row */}
               <div className="grid grid-cols-4 gap-3">
                 {[
                   { label: 'Tier', value: ticket.customer.tier },
@@ -229,7 +227,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
                 ))}
               </div>
 
-              {/* AI summary */}
               <div className="space-y-1.5">
                 <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">AI Summary</span>
                 <p className="text-xs text-foreground/80 leading-relaxed bg-muted/40 rounded-xl p-3 border border-border/40">
@@ -237,7 +234,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
                 </p>
               </div>
 
-              {/* Suggested reply */}
               {ticket.suggestedReply && (
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
@@ -247,7 +243,7 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
                     <p className="leading-relaxed">{ticket.suggestedReply}</p>
                     <button
                       onClick={() => setReplyText(ticket.suggestedReply ?? '')}
-                      className="shrink-0 text-[11px] font-semibold text-primary hover:underline bg-amber-400 rounded-2xl p-2"
+                      className="shrink-0 text-[11px] font-semibold text-primary hover:underline bg-amber-400 rounded-2xl p-2 cursor-pointer"
                     >
                       Use
                     </button>
@@ -255,7 +251,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
                 </div>
               )}
 
-              {/* Tags */}
               {ticket.tags.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                   <TagIcon className="w-3 h-3 text-muted-foreground" />
@@ -270,7 +265,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
           </Card>
         </div>
 
-        {/* Messages */}
         <div className="px-4 py-4 space-y-4">
           {isMessagesLoading ? (
             <div className="space-y-3">
@@ -280,7 +274,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
             </div>
           ) : messages && messages.length > 0 ? (
             messages.map((msg) => {
-              /* System message → Marker separator */
               if (msg.type === 'system') {
                 return (
                   <Marker key={msg.id} variant="separator" className="my-2 text-[11px]">
@@ -293,7 +286,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
 
               return (
                 <div key={msg.id} className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}>
-                  {/* Author + time label */}
                   <div className="flex items-center gap-1.5 mb-1 px-1">
                     {!isAgent && (
                       <span className="text-[10px] font-semibold text-muted-foreground capitalize">
@@ -311,7 +303,7 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
                   </div>
 
                   <div
-                    className={`max-w-[80%] px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                    className={`max-w-[80%] px-4 py-3 text-sm leading-relaxed shadow-xs ${
                       isAgent
                         ? msg.type === 'ai'
                           ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm'
@@ -329,11 +321,9 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
           )}
         </div>
 
-        {/* Bottom anchor for auto-scrolling */}
         <div ref={messagesEndRef} className="h-4" />
       </div>
 
-      {/* ── Sticky footer: reply input & send button ── */}
       <div className="shrink-0 border-t border-border bg-card p-3">
         <form onSubmit={handleSendReply} className="flex items-end gap-2">
           <div className="flex-1 bg-muted/40 border border-border/80 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 rounded-2xl p-3 transition-all">
@@ -342,7 +332,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => {
-                // Ctrl+Enter → send reply AND move to next ticket
                 if (e.key === 'Enter' && e.ctrlKey) {
                   e.preventDefault();
                   if (replyText.trim()) {
@@ -355,7 +344,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
                   }
                   return;
                 }
-                // Enter (no Shift) → send reply only
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   if (replyText.trim()) sendReply();
@@ -366,12 +354,12 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
             />
           </div>
 
-          {/* Send button */}
           <button
             type="submit"
             disabled={!replyText.trim() || postMessageMutation.isPending}
-            className="w-11 h-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center shadow-sm transition-all disabled:opacity-40 shrink-0 mb-1"
+            aria-label="Send Reply"
             title="Send Reply"
+            className="w-11 h-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center shadow-xs transition-all disabled:opacity-40 shrink-0 mb-1 cursor-pointer"
           >
             {postMessageMutation.isPending ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -381,7 +369,6 @@ export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSe
           </button>
         </form>
       </div>
-
     </div>
   );
 }

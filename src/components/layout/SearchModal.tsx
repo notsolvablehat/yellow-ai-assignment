@@ -21,7 +21,6 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
     onClose();
   };
 
-  // Close on ESC
   useHotkeys('escape', handleClose, { enabled: isOpen, enableOnFormTags: true });
 
   if (!isOpen) return null;
@@ -33,15 +32,12 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in"
         onClick={handleClose}
       />
 
-      {/* Modal Card */}
       <div className="relative w-full max-w-2xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-200">
-        {/* Search Input Bar */}
         <div className="flex items-center px-4 py-3 border-b border-border bg-background/50">
           <Search className="w-5 h-5 text-muted-foreground shrink-0 mr-3" />
           <input
@@ -55,21 +51,22 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="p-1 hover:bg-muted rounded-full text-muted-foreground mr-1"
+              className="p-1 hover:bg-muted rounded-full text-muted-foreground mr-1 cursor-pointer"
               title="Clear search"
+              aria-label="Clear search"
             >
               <X className="w-4 h-4" />
             </button>
           )}
           <button
             onClick={handleClose}
-            className="ml-2 p-1 hover:bg-muted rounded-lg text-muted-foreground"
+            className="ml-2 p-1 hover:bg-muted rounded-lg text-muted-foreground cursor-pointer"
+            aria-label="Close search"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Search Results / Skeleton Body */}
         <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2">
           {!query.trim() && (
             <div className="py-8 text-center text-muted-foreground text-sm">
@@ -98,10 +95,11 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
                 Found {results.length} result{results.length > 1 ? 's' : ''}
               </div>
               {results.map((ticket: TicketSummary) => (
-                <div
+                <button
+                  type="button"
                   key={ticket.id}
                   onClick={() => handleSelect(ticket.id)}
-                  className="group flex flex-col p-3 rounded-lg border border-border/60 hover:border-primary/50 hover:bg-accent/10 cursor-pointer transition-all"
+                  className="w-full text-left group flex flex-col p-3 rounded-lg border border-border/60 hover:border-primary/50 hover:bg-accent/10 cursor-pointer transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 font-medium text-foreground">
@@ -137,13 +135,12 @@ export function SearchModal({ isOpen, onClose, onSelectTicket }: SearchModalProp
                       {ticket.priority}
                     </Badge>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Modal Footer Tip */}
         <div className="px-4 py-2 bg-muted/40 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <span>Press <kbd className="px-1.5 py-0.5 bg-background border rounded text-[10px]">ESC</kbd> to close</span>
           <span>Click result to view ticket detail</span>

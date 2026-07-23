@@ -61,10 +61,8 @@ The primary focus of this build was **Agent Speed and Context**. Instead of buil
 - **Why React Query?** The app is heavily reliant on server state (tickets, messages). React Query natively handles caching, stale times, and loading/error states without the boilerplate of Redux or Context API.
 - **Strict Network Verification vs. Optimistic Updates:** On resolving a ticket, the UI waits for network confirmation rather than assuming success. Given that this tool deals with angry customers, verifying the state change with the server is prioritized over an immediate optimistic update that might silently roll back if the API fails.
 - **Tailwind & shadcn/ui:** Allowed for rapid iteration of a premium, accessible design system without writing hundreds of lines of custom CSS.
+- **On-Demand Write Path Failure (TKT-3381):** Ticket `TKT-3381` ("Charan Chai") is specifically configured in `db.ts` to fail on its first resolve attempt (returning a 500 error) and succeed on retry. This provides an on-demand write failure path for testing inline error feedback and recovery mechanisms.
 
-## Known Limitations / Out of Scope
+## Time Spent
 
-As per the assignment brief, the following were explicitly scoped out and left unimplemented:
-- Real authentication and multi-tenancy.
-- WebSockets / Real-time incoming tickets (data is fetched/polled via React Query).
-- A real production backend database.
+- **Total Time:** ~2 evenings (~12 hours total) covering [figma designs](https://www.figma.com/design/PdlEwFx5Ag6r0L5937b8Gk/Designs-Explore?node-id=2659-1567&t=cbUlWmiq8ehr2Egt-1), architecture setup, MSW mocking, UI & accessibility polish, hotkey integration, and inline error recovery.

@@ -38,7 +38,6 @@ interface ShortcutsDialogProps {
   onClose: () => void;
 }
 
-// ── Local state mirrors the debugStore singleton so the UI is reactive ──
 interface LocalDebugState {
   fetchFailure: boolean;
   resolveFailure: boolean;
@@ -69,7 +68,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
   }));
   const [activeSection, setActiveSection] = useState<'shortcuts' | 'controls'>('shortcuts');
 
-  // Sync on open
   const syncFromStore = useCallback(() => {
     setLocalDebug({
       fetchFailure: debugStore.fetchFailure,
@@ -78,7 +76,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
     });
   }, []);
 
-  // Close on Escape
   useHotkeys('escape', onClose, { enabled: isOpen, enableOnFormTags: true });
 
   const setFetchFailure = (val: boolean) => {
@@ -117,7 +114,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
         showCloseButton
         className="sm:max-w-4xl max-w-4xl w-full p-0 overflow-hidden rounded-2xl gap-0"
       >
-        {/* ── Header ── */}
         <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
             <Keyboard className="w-4 h-4 text-primary" />
@@ -130,11 +126,10 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
           </DialogTitle>
         </DialogHeader>
 
-        {/* ── Tab bar ── */}
         <div className="flex border-b border-border bg-muted/30">
           <button
             onClick={() => setActiveSection('shortcuts')}
-            className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${
+            className={`flex-1 py-2.5 text-xs font-semibold transition-colors cursor-pointer ${
               activeSection === 'shortcuts'
                 ? 'text-foreground border-b-2 border-primary bg-background'
                 : 'text-muted-foreground hover:text-foreground'
@@ -144,7 +139,7 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
           </button>
           <button
             onClick={() => setActiveSection('controls')}
-            className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${
+            className={`flex-1 py-2.5 text-xs font-semibold transition-colors cursor-pointer ${
               activeSection === 'controls'
                 ? 'text-foreground border-b-2 border-primary bg-background'
                 : 'text-muted-foreground hover:text-foreground'
@@ -157,7 +152,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
           </button>
         </div>
 
-        {/* ── Shortcuts Panel ── */}
         {activeSection === 'shortcuts' && (
           <div className="px-5 py-4 space-y-1.5">
             {SHORTCUTS.map(({ keys, label }) => (
@@ -189,11 +183,9 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
           </div>
         )}
 
-        {/* ── Controls Panel ── */}
         {activeSection === 'controls' && (
           <div className="max-h-[60vh] overflow-y-auto">
             <div className="px-5 py-4 space-y-5">
-              {/* Global toggles */}
               <div className="space-y-3">
                 <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                   Global Simulation
@@ -216,7 +208,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
                 />
               </div>
 
-              {/* Per-ticket overrides */}
               <div className="space-y-3">
                 <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
                   Per-Ticket Resolve Behaviour
@@ -262,11 +253,10 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
                 </div>
               </div>
 
-              {/* Reset button */}
               <div className="flex justify-end pt-1">
                 <button
                   onClick={handleReset}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Reset All Simulations
@@ -276,7 +266,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
           </div>
         )}
 
-        {/* ── Footer hint ── */}
         <div className="px-5 py-2.5 bg-muted/30 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
           <span>
             Press <Kbd className="text-[10px] px-1 py-0.5">Esc</Kbd> to close
@@ -286,7 +275,6 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
     </Dialog>
   );
 }
-
 
 function SimToggle({
   label,
@@ -304,7 +292,7 @@ function SimToggle({
   return (
     <button
       onClick={onToggle}
-      className={`w-full flex items-center justify-between gap-3 p-3 rounded-xl border transition-all text-left ${
+      className={`w-full flex items-center justify-between gap-3 p-3 rounded-xl border transition-all text-left cursor-pointer ${
         active
           ? danger
             ? 'bg-rose-50 border-rose-300 dark:bg-rose-950/30 dark:border-rose-800'
@@ -337,8 +325,6 @@ function SimToggle({
     </button>
   );
 }
-
-
 
 function ResolveModeSelect({
   value,
