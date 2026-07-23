@@ -123,7 +123,7 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
             <Keyboard className="w-4 h-4 text-primary" />
             Keyboard Shortcuts &amp; Debug Controls
             {hasActiveSimulation && (
-              <Badge className="ml-auto bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+              <Badge className="ml-auto mr-5 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
                 Simulation Active
               </Badge>
             )}
