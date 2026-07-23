@@ -19,7 +19,14 @@ const eslintConfig = defineConfig([
       "react-refresh/only-export-components": [
         "off",
         { allowConstantExport: true },
-      ],
+       ],
+       "@typescript-eslint/no-unused-vars": [
+           "error",
+           {
+             "argsIgnorePattern": "^_",
+             "varsIgnorePattern": "^_"
+           }
+         ]
     },
   },
 
