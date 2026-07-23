@@ -30,15 +30,17 @@ export function TicketCard({ ticket, isSelected, onSelect }: TicketCardProps) {
   };
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onSelect(ticket.id)}
-      className={`relative flex flex-col gap-2 p-3.5 rounded-xl cursor-pointer transition-all border ${
+      aria-selected={isSelected}
+      aria-label={`Ticket ${ticket.id} from ${ticket.customerName}`}
+      className={`w-full text-left relative flex flex-col gap-2 p-3.5 rounded-xl cursor-pointer transition-all border outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         isSelected
           ? 'bg-[#E4DBFD] shadow-sm border-[#29165E33]'
           : 'bg-card hover:bg-muted/40'
       }`}
     >
-      {/* Header row: name + time + priority dot */}
       <div className="flex items-center justify-between gap-2">
         <span className="font-semibold text-sm text-foreground tracking-tight line-clamp-1">
           {ticket.customerName}
@@ -52,7 +54,6 @@ export function TicketCard({ ticket, isSelected, onSelect }: TicketCardProps) {
         </div>
       </div>
 
-      {/* Escalation reason badge */}
       <Badge
         variant="outline"
         className={`w-fit text-[11px] font-medium py-0.5 px-2 rounded-md ${getEscalationBadge(ticket.escalationReason)}`}
@@ -60,10 +61,9 @@ export function TicketCard({ ticket, isSelected, onSelect }: TicketCardProps) {
         {ticket.escalationReason}
       </Badge>
 
-      {/* Message preview */}
       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
         {ticket.lastMessagePreview}
       </p>
-    </div>
+    </button>
   );
 }

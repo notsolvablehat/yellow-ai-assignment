@@ -14,12 +14,12 @@ export function Header({
 }: HeaderProps) {
    return (
       <header className="h-14 border-b border-border bg-card/80 backdrop-blur-xs flex items-center justify-between px-4 sticky top-0 z-30">
-         {/* Left: Mobile Toggle & Brand */}
          <div className="flex items-center gap-3">
             <button
                onClick={onToggleMobileMenu}
-               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden"
+               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden cursor-pointer"
                title="Open Menu"
+               aria-label="Open Menu"
             >
                <Menu className="w-5 h-5" />
             </button>
@@ -42,11 +42,10 @@ export function Header({
             </div>
          </div>
 
-         {/* Middle: Searchbar with Filters inside right end */}
          <div className="flex-1 max-w-md mx-4">
             <button
                onClick={onOpenSearch}
-               className="w-full h-9 px-3 rounded-full bg-background border border-input hover:border-primary/50 text-left text-sm text-muted-foreground flex items-center justify-between transition-colors shadow-2xs group"
+               className="w-full h-9 px-3 rounded-full bg-background border border-input hover:border-primary/50 text-left text-sm text-muted-foreground flex items-center justify-between transition-colors shadow-2xs group cursor-pointer"
             >
                <div className="flex items-center gap-2 overflow-hidden">
                   <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground shrink-0" />
@@ -69,7 +68,7 @@ export function Header({
          <div className="hidden sm:flex items-center gap-2">
            <button
              onClick={onOpenShortcuts}
-             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors shadow-2xs"
+             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors shadow-2xs cursor-pointer"
              title="Shortcuts & Debug Controls (?)"
            >
              <HelpCircle className="w-4 h-4 text-primary" />

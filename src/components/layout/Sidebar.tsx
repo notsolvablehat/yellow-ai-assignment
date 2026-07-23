@@ -39,20 +39,18 @@ export function Sidebar({ activeTab, onSelectTab, isMobileOpen, onCloseMobile }:
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-card/80 text-sidebar-foreground border-r border-sidebar-border w-60 p-4">
-      {/* Mobile Drawer Close Header */}
       {isMobileOpen && (
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-sidebar-border/60 lg:hidden">
           <span className="font-heading font-semibold text-sm text-foreground">Menu</span>
           <button
             onClick={onCloseMobile}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground"
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
       )}
 
-      {/* Main Nav Items */}
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -72,8 +70,8 @@ export function Sidebar({ activeTab, onSelectTab, isMobileOpen, onCloseMobile }:
                 item.disabled
                   ? 'opacity-40 cursor-not-allowed text-sidebar-foreground/60'
                   : isActive
-                  ? 'bg-[#E4DBFD] text-primary shadow-2xs font-semibold'
-                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  ? 'bg-[#E4DBFD] text-primary shadow-2xs font-semibold cursor-pointer'
+                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -83,17 +81,16 @@ export function Sidebar({ activeTab, onSelectTab, isMobileOpen, onCloseMobile }:
         })}
       </nav>
 
-      {/* Bottom Nav Links */}
       <div className="pt-4 border-t border-sidebar-border/60 space-y-1">
         <button
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
           onClick={() => {}}
         >
           <Settings className="w-4 h-4 shrink-0" />
           <span>Settings</span>
         </button>
         <button
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
           onClick={() => {}}
         >
           <HelpCircle className="w-4 h-4 shrink-0" />
@@ -105,12 +102,10 @@ export function Sidebar({ activeTab, onSelectTab, isMobileOpen, onCloseMobile }:
 
   return (
     <>
-      {/* Desktop Persistent Sidebar */}
       <aside className="hidden lg:block shrink-0 h-[calc(100vh-3.5rem)] sticky top-14">
         {sidebarContent}
       </aside>
 
-      {/* Mobile Slide-out Drawer */}
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div

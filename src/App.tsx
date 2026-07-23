@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster, toast } from 'sonner';
 import { Header } from './components/layout/Header';
 import { Sidebar, type NavTab } from './components/layout/Sidebar';
 import { SearchModal } from './components/layout/SearchModal';
@@ -8,18 +9,16 @@ import { ShortcutsDialog } from './components/layout/ShortcutsDialog';
 import { Inbox } from './components/inbox/Inbox';
 import { TicketDetailView } from './components/detail/TicketDetailView';
 import { useTickets, useUpdateTicketStatus } from './hooks/useTickets';
-import type { SortKey } from './types/ticket';
+import type { SortKey, TicketStatus } from './types/ticket';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: false,
     },
   },
 });
-
-import { Toaster, toast } from 'sonner';
 
 function MainLayout() {
   const [activeTab, setActiveTab] = useState<NavTab>('inbox');
@@ -49,11 +48,15 @@ function MainLayout() {
   const activeTicketId = selectedTicketId ?? tickets?.[0]?.id ?? null;
 
   const handleSelectTicket = (id: string) => {
+    if (id !== selectedTicketId) {
+      updateStatusMutation.reset();
+    }
     setSelectedTicketId(id);
     setMobileView('detail');
   };
 
   const handleTabChange = (tab: NavTab) => {
+    updateStatusMutation.reset();
     setActiveTab(tab);
     setSelectedTicketId(null);
     setMobileView('list');
@@ -75,22 +78,33 @@ function MainLayout() {
     }
   }, [tickets, activeTicketId]);
 
+  const handleStatusChange = useCallback(
+    (status: TicketStatus) => {
+      if (!activeTicketId) return;
+      updateStatusMutation.reset();
+      updateStatusMutation.mutate(
+        { id: activeTicketId, status },
+        {
+          onSuccess: () => {
+            if (status === 'resolved') {
+              toast.success('Ticket resolved — moved to next');
+              selectNextTicket();
+            } else {
+              toast.success(`Ticket status updated to ${status}`);
+            }
+          },
+        }
+      );
+    },
+    [activeTicketId, updateStatusMutation, selectNextTicket]
+  );
+
   const resolveCurrentTicket = useCallback(() => {
     if (!activeTicketId) return;
     const currentTicket = tickets?.find((t) => t.id === activeTicketId);
     if (!currentTicket || currentTicket.status === 'resolved') return;
-
-    updateStatusMutation.mutate(
-      { id: activeTicketId, status: 'resolved' },
-      {
-        onSuccess: () => {
-          toast.success('Ticket resolved — moved to next');
-          // After resolve, auto-move to next ticket
-          selectNextTicket();
-        },
-      }
-    );
-  }, [activeTicketId, tickets, updateStatusMutation, selectNextTicket]);
+    handleStatusChange('resolved');
+  }, [activeTicketId, tickets, handleStatusChange]);
 
   useHotkeys('ctrl+m', (e) => {
     e.preventDefault();
@@ -116,64 +130,56 @@ function MainLayout() {
     return () => window.removeEventListener('keydown', handleNativeKeyDown);
   }, []);
 
-  // Ctrl+K / Cmd+K → Search modal
   useHotkeys('ctrl+k, meta+k', (e) => {
     e.preventDefault();
     setIsSearchModalOpen((prev) => !prev);
   }, { enableOnFormTags: false });
 
-  // Ctrl+. → Resolve current ticket (not when typing)
   useHotkeys('ctrl+period', (e) => {
     e.preventDefault();
     resolveCurrentTicket();
   }, { enableOnFormTags: false });
 
-  // Ctrl+Down → Next ticket (not when typing)
   useHotkeys('ctrl+down', (e) => {
     e.preventDefault();
     selectNextTicket();
   }, { enableOnFormTags: false });
 
-  // Ctrl+Up → Previous ticket (not when typing)
   useHotkeys('ctrl+up', (e) => {
     e.preventDefault();
     selectPrevTicket();
   }, { enableOnFormTags: false });
 
-  // Escape → close modals
   useHotkeys('escape', () => {
     if (isSearchModalOpen) setIsSearchModalOpen(false);
     else if (isShortcutsDialogOpen) setIsShortcutsDialogOpen(false);
   }, { enableOnFormTags: true });
 
+  const isUpdatingStatus = updateStatusMutation.isPending;
+  const updateStatusError = updateStatusMutation.error as Error | null;
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
-      {/* Header */}
       <Header
         onOpenSearch={() => setIsSearchModalOpen(true)}
         onToggleMobileMenu={() => setIsMobileSidebarOpen(true)}
         onOpenShortcuts={() => setIsShortcutsDialogOpen(true)}
       />
 
-      {/* Search Modal Overlay */}
       <SearchModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         onSelectTicket={handleSelectTicket}
       />
 
-      {/* Shortcuts / Debug Dialog */}
       <ShortcutsDialog
         isOpen={isShortcutsDialogOpen}
         onClose={() => setIsShortcutsDialogOpen(false)}
       />
 
-      {/* Toast notifications */}
       <Toaster position="top-right" richColors />
 
-      {/* Main Workspace Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
         <Sidebar
           activeTab={activeTab}
           onSelectTab={handleTabChange}
@@ -181,9 +187,7 @@ function MainLayout() {
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
 
-        {/* Content Pane (Responsive Layout for Mobile vs Desktop) */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Inbox List (Always visible on Desktop; on Mobile visible when mobileView === 'list') */}
           <div
             className={`flex-1 lg:flex-none h-full ${
               mobileView === 'list' ? 'block' : 'hidden lg:block'
@@ -194,7 +198,7 @@ function MainLayout() {
               tickets={tickets}
               isLoading={isLoading}
               isError={isError}
-              error={error as Error | null}
+              error={error ?? null}
               onRetry={() => refetch()}
               selectedTicketId={activeTicketId}
               onSelectTicket={handleSelectTicket}
@@ -203,7 +207,6 @@ function MainLayout() {
             />
           </div>
 
-          {/* Ticket Detail (Always visible on Desktop; on Mobile visible when mobileView === 'detail') */}
           <div
             className={`flex-1 h-full overflow-hidden ${
               mobileView === 'detail' ? 'block' : 'hidden lg:block'
@@ -215,6 +218,9 @@ function MainLayout() {
               onBackToInbox={() => setMobileView('list')}
               onSelectNextTicket={selectNextTicket}
               onResolveTicket={resolveCurrentTicket}
+              onStatusChange={handleStatusChange}
+              isUpdatingStatus={isUpdatingStatus}
+              updateStatusError={updateStatusError}
             />
           </div>
         </div>

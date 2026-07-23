@@ -32,7 +32,6 @@ export function Inbox({
   currentSort,
   onSortChange,
 }: InboxProps) {
-  // Compute open/urgent count for top badge
   const needActionCount = tickets?.filter((t) => t.status === 'open' || t.status === 're-escalated').length ?? 0;
 
   const sortOptions: { key: SortKey; label: string }[] = [
@@ -43,7 +42,6 @@ export function Inbox({
 
   return (
     <div className="flex flex-col h-full bg-background border-r border-border w-full lg:w-96 shrink-0">
-      {/* Top Header & Sort Segmented Control */}
       <div className="p-4 border-b border-border space-y-3 bg-card/40">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -58,13 +56,12 @@ export function Inbox({
           </div>
         </div>
 
-        {/* Sort Pill Buttons */}
         <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-xl">
           {sortOptions.map((opt) => (
             <button
               key={opt.key}
               onClick={() => onSortChange(opt.key)}
-              className={`py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-center ${
+              className={`py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-center cursor-pointer ${
                 currentSort === opt.key
                   ? 'bg-card text-foreground shadow-2xs font-semibold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -76,9 +73,7 @@ export function Inbox({
         </div>
       </div>
 
-      {/* Ticket List Body / 4 States */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-        {/* State 1: Loading State */}
         {isLoading && (
           <div className="space-y-3">
             <TicketSkeleton />
@@ -88,7 +83,6 @@ export function Inbox({
           </div>
         )}
 
-        {/* State 2: Fail State */}
         {!isLoading && isError && (
           <div className="p-6 my-4 text-center border border-rose-200 bg-rose-50/50 rounded-xl space-y-3">
             <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
@@ -100,7 +94,7 @@ export function Inbox({
             </div>
             <button
               onClick={onRetry}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-600 text-white hover:bg-rose-700 rounded-lg transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-600 text-white hover:bg-rose-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Try Again
@@ -108,7 +102,6 @@ export function Inbox({
           </div>
         )}
 
-        {/* State 3: Empty State */}
         {!isLoading && !isError && tickets && tickets.length === 0 && (
           <Empty className="py-12 border-0 bg-transparent">
             <EmptyMedia variant="icon" className="bg-muted">
@@ -125,7 +118,6 @@ export function Inbox({
           </Empty>
         )}
 
-        {/* State 4: Success State (True State) */}
         {!isLoading && !isError && tickets && tickets.length > 0 && (
           <div className="space-y-2.5">
             {tickets.map((ticket) => (
