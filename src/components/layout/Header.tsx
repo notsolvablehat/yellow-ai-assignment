@@ -18,9 +18,14 @@ export function Header({ onOpenSearch, onToggleMobileMenu }: HeaderProps) {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <h1 className="font-heading font-semibold text-lg text-foreground tracking-tight">
-          The Conversation Inbox
-        </h1>
+        <div className="flex flex-col">
+          <h1 className="font-heading font-bold text-base text-foreground tracking-tight leading-tight">
+            The Conversation Inbox
+          </h1>
+          <span className="text-[11px] text-muted-foreground font-medium">
+            Triage Desk
+          </span>
+        </div>
       </div>
 
       {/* Middle: Searchbar with Filters inside right end */}

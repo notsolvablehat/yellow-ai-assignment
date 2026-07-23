@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   Send,
   AlertTriangle,
-  CheckCircle,
+  CheckCircle2,
   RefreshCw,
   Sparkles,
   Tag as TagIcon,
-  DollarSign,
   UserCheck,
 } from 'lucide-react';
 import { useTicket, useUpdateTicketStatus } from '../../hooks/useTickets';
@@ -15,6 +14,7 @@ import { useTicketMessages, usePostMessage } from '../../hooks/useMessages';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Marker, MarkerContent } from '../ui/marker';
 import { TicketSkeleton } from '../inbox/TicketSkeleton';
 
 interface TicketDetailViewProps {
@@ -25,24 +25,30 @@ interface TicketDetailViewProps {
 export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewProps) {
   const [replyText, setReplyText] = useState('');
   const [statusError, setStatusError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: ticket, isLoading: isTicketLoading, isError: isTicketError, refetch: refetchTicket } = useTicket(
-    ticketId ?? undefined
-  );
+  const { data: ticket, isLoading: isTicketLoading, isError: isTicketError, refetch: refetchTicket } = useTicket(ticketId ?? undefined);
   const { data: messages, isLoading: isMessagesLoading } = useTicketMessages(ticketId ?? undefined);
 
   const updateStatusMutation = useUpdateTicketStatus();
   const postMessageMutation = usePostMessage(ticketId ?? '');
 
+  // Auto-scroll to bottom of conversation thread when messages update
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
   if (!ticketId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-card/20 text-muted-foreground">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <UserCheck className="w-6 h-6 text-muted-foreground" />
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4 ring-4 ring-border/40">
+          <UserCheck className="w-7 h-7 text-muted-foreground" />
         </div>
         <h3 className="font-semibold text-base text-foreground">No Ticket Selected</h3>
-        <p className="text-xs text-muted-foreground max-w-sm mt-1">
-          Select a ticket from the inbox to view customer details, message history, and triage tools.
+        <p className="text-xs text-muted-foreground max-w-xs mt-1.5">
+          Select a ticket from the inbox to view customer details and conversation history.
         </p>
       </div>
     );
@@ -51,9 +57,9 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
   if (isTicketLoading) {
     return (
       <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-        <Skeleton className="h-8 w-48 rounded" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-10 w-52 rounded-lg" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-28 w-full rounded-xl" />
         <TicketSkeleton />
       </div>
     );
@@ -61,12 +67,12 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
 
   if (isTicketError || !ticket) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3">
-        <AlertTriangle className="w-10 h-10 text-rose-500" />
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <AlertTriangle className="w-10 h-10 text-rose-400" />
         <h3 className="font-semibold text-base text-foreground">Failed to load ticket details</h3>
         <button
           onClick={() => refetchTicket()}
-          className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg inline-flex items-center gap-1.5"
+          className="px-4 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-lg inline-flex items-center gap-1.5"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Retry
         </button>
@@ -74,33 +80,27 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
     );
   }
 
-  // Handle status update (e.g. Resolve / Snooze / Reopen)
   const handleStatusChange = (newStatus: 'resolved' | 'snoozed' | 'open') => {
     setStatusError(null);
     updateStatusMutation.mutate(
       { id: ticket.id, status: newStatus },
       {
         onError: (err: any) => {
-          const msg = err?.response?.data?.message || 'Failed to update ticket status. Please try again.';
+          const msg = err?.response?.data?.message || 'Failed to update status. Please try again.';
           setStatusError(msg);
         },
       }
     );
   };
 
-  // Handle sending agent reply
   const handleSendReply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyText.trim()) return;
-
     postMessageMutation.mutate(replyText.trim(), {
-      onSuccess: () => {
-        setReplyText('');
-      },
+      onSuccess: () => setReplyText(''),
     });
   };
 
-  // Initials for avatar
   const initials = ticket.customerName
     .split(' ')
     .map((n) => n[0])
@@ -109,50 +109,50 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
     .toUpperCase();
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-card/10">
-      {/* Mobile Back Button & Header */}
-      <div className="p-4 border-b border-border bg-card flex items-center justify-between sticky top-0 z-10 shadow-2xs">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
+
+      {/* ── Sticky top header ── */}
+      <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-border bg-card shadow-sm">
         <div className="flex items-center gap-3">
           <button
             onClick={onBackToInbox}
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden"
-            title="Back to Inbox"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-semibold flex items-center justify-center text-sm shadow-2xs">
+          {/* Avatar */}
+          <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm ring-2 ring-primary/20">
             {initials}
           </div>
           <div>
-            <h2 className="font-heading font-bold text-base text-foreground leading-tight">
-              {ticket.customerName}
-            </h2>
-            <p className="text-xs text-muted-foreground font-mono">
-              {ticket.customer.email} • ID: #{ticket.id}
+            <h2 className="font-heading font-bold text-sm text-foreground leading-tight">{ticket.customerName}</h2>
+            <p className="text-[11px] text-muted-foreground font-mono tracking-tight">
+              {ticket.customer.email}&nbsp;•&nbsp;ID:&nbsp;#{ticket.id}
             </p>
           </div>
         </div>
-
-        {/* Status Actions */}
-        <div className="flex items-center gap-2">
+        {/* Top Right Action: Resolve / Re-open Ticket */}
+        <div>
           {ticket.status !== 'resolved' ? (
             <button
+              type="button"
               onClick={() => handleStatusChange('resolved')}
               disabled={updateStatusMutation.isPending}
-              className="px-3 py-1.5 text-xs font-semibold bg-accent text-accent-foreground hover:bg-accent/90 rounded-lg transition-all shadow-2xs inline-flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3.5 py-1.5 text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 rounded-full transition-all shadow-xs inline-flex items-center gap-1.5 disabled:opacity-60"
             >
               {updateStatusMutation.isPending ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <CheckCircle className="w-3.5 h-3.5" />
+                <CheckCircle2 className="w-3.5 h-3.5" />
               )}
               <span>Resolve Issue</span>
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => handleStatusChange('open')}
               disabled={updateStatusMutation.isPending}
-              className="px-3 py-1.5 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 rounded-lg transition-colors inline-flex items-center gap-1.5"
+              className="px-3.5 py-1.5 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 rounded-full transition-colors inline-flex items-center gap-1.5"
             >
               Re-open Ticket
             </button>
@@ -160,186 +160,202 @@ export function TicketDetailView({ ticketId, onBackToInbox }: TicketDetailViewPr
         </div>
       </div>
 
-      {/* Status Error Alert if Flaky Backend fails */}
-      {statusError && (
-        <div className="m-4 p-3 bg-rose-100 border border-rose-300 rounded-lg text-xs text-rose-900 flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            {statusError}
-          </span>
-          <button
-            onClick={() => handleStatusChange('resolved')}
-            className="font-semibold underline ml-2 hover:text-rose-950"
-          >
-            Retry Now
-          </button>
-        </div>
-      )}
+      {/* ── Scrollable body ── */}
+      <div className="flex-1 overflow-y-auto">
 
-      <div className="p-4 space-y-4 flex-1 max-w-4xl w-full mx-auto">
-        {/* Escalation Banner (e.g. Low CSAT) */}
+        {/* Status error banner */}
+        {statusError && (
+          <div className="mx-4 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+              {statusError}
+            </span>
+            <button
+              onClick={() => handleStatusChange('resolved')}
+              className="font-semibold text-rose-700 hover:text-rose-900 underline ml-3 shrink-0"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Escalation banner */}
         {ticket.escalationReason && (
-          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="mx-4 mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <div className="font-semibold text-sm text-amber-900 dark:text-amber-200">
-                {ticket.escalationReason}
-              </div>
-              <p className="text-xs text-amber-800 dark:text-amber-300/90 mt-1">
-                Customer expressed frustration regarding previous support response. Prioritize empathetic and clear resolution.
+              <p className="font-semibold text-sm text-amber-900">{ticket.escalationReason}</p>
+              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                Customer expressed frustration regarding previous support response. Prioritise empathetic and clear resolution.
               </p>
             </div>
           </div>
         )}
 
-        {/* Single Data Card: Customer Info & AI Summary */}
-        <Card className="border border-border/80 shadow-2xs">
-          <CardHeader className="border-b border-border/60 pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
-              <Sparkles className="w-4 h-4 text-accent" />
-              <span>Customer Snapshot & AI Summary</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4 space-y-3">
-            {/* Customer Details Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-muted/40 rounded-lg text-xs">
-              <div>
-                <span className="text-muted-foreground">Tier</span>
-                <p className="font-semibold text-foreground mt-0.5">{ticket.customer.tier}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">LTV</span>
-                <p className="font-semibold text-foreground mt-0.5 flex items-center">
-                  <DollarSign className="w-3 h-3 text-muted-foreground" />
-                  {ticket.customer.lifetimeValueUsd?.toLocaleString() ?? 'N/A'}
-                </p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Priority</span>
-                <p className="font-semibold capitalize text-foreground mt-0.5">{ticket.priority}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">CSAT Score</span>
-                <p className="font-semibold text-foreground mt-0.5">
-                  {ticket.csatScore ? `${ticket.csatScore}/5 ⭐` : 'N/A'}
-                </p>
-              </div>
-            </div>
-
-            {/* AI Summary */}
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                AI Context Summary
-              </span>
-              <p className="text-xs text-foreground/90 leading-relaxed bg-background p-3 rounded-lg border border-border/60">
-                {ticket.aiSummary}
-              </p>
-            </div>
-
-            {/* Suggested Reply if available */}
-            {ticket.suggestedReply && (
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-accent-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-500" /> Suggested AI Reply
-                </span>
-                <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-lg text-xs text-foreground flex items-start justify-between gap-2">
-                  <p>{ticket.suggestedReply}</p>
-                  <button
-                    onClick={() => setReplyText(ticket.suggestedReply ?? '')}
-                    className="text-[11px] font-semibold text-primary hover:underline shrink-0"
-                  >
-                    Use Reply
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Tags Swatches */}
-            {ticket.tags.length > 0 && (
-              <div className="flex items-center gap-1.5 pt-1">
-                <TagIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                {ticket.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-2">
-                    {tag}
-                  </Badge>
+        {/* Customer snapshot & AI summary card */}
+        <div className="px-4 pt-4">
+          <Card className="border border-border/70 shadow-none bg-card rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-border/60 py-3 px-4">
+              <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Customer Snapshot &amp; AI Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {/* Stats row */}
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { label: 'Tier', value: ticket.customer.tier },
+                  { label: 'LTV', value: ticket.customer.lifetimeValueUsd ? `$${ticket.customer.lifetimeValueUsd.toLocaleString()}` : 'N/A' },
+                  { label: 'Priority', value: ticket.priority },
+                  { label: 'CSAT', value: ticket.csatScore ? `${ticket.csatScore}/5` : 'N/A' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex flex-col gap-0.5 bg-muted/50 rounded-lg px-3 py-2">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+                    <span className="text-xs font-semibold text-foreground capitalize">{value}</span>
+                  </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Message Thread History */}
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Conversation Thread
-          </h3>
+              {/* AI summary */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">AI Summary</span>
+                <p className="text-xs text-foreground/80 leading-relaxed bg-muted/40 rounded-xl p-3 border border-border/40">
+                  {ticket.aiSummary}
+                </p>
+              </div>
 
+              {/* Suggested reply */}
+              {ticket.suggestedReply && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />Suggested Reply
+                  </span>
+                  <div className="p-3 bg-accent/10 border border-accent/30 rounded-xl text-xs text-foreground flex items-start justify-between gap-3">
+                    <p className="leading-relaxed">{ticket.suggestedReply}</p>
+                    <button
+                      onClick={() => setReplyText(ticket.suggestedReply ?? '')}
+                      className="shrink-0 text-[11px] font-semibold text-primary hover:underline"
+                    >
+                      Use
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {ticket.tags.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <TagIcon className="w-3 h-3 text-muted-foreground" />
+                  {ticket.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-[10px] font-medium px-2 py-0.5">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Messages */}
+        <div className="px-4 py-4 space-y-4">
           {isMessagesLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-16 w-3/4 rounded-xl" />
-              <Skeleton className="h-16 w-3/4 ml-auto rounded-xl" />
+            <div className="space-y-3">
+              <Skeleton className="h-14 w-3/4 rounded-2xl" />
+              <Skeleton className="h-14 w-3/4 ml-auto rounded-2xl" />
+              <Skeleton className="h-14 w-2/4 rounded-2xl" />
             </div>
           ) : messages && messages.length > 0 ? (
-            <div className="space-y-3">
-              {messages.map((msg) => {
-                const isAgent = msg.type === 'agent' || msg.type === 'ai';
+            messages.map((msg) => {
+              /* System message → Marker separator */
+              if (msg.type === 'system') {
                 return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}
-                  >
-                    <div className="flex items-center gap-1.5 mb-1 text-[11px] text-muted-foreground">
-                      <span className="capitalize font-medium">{msg.type}</span>
-                      <span>•</span>
-                      <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-
-                    <div
-                      className={`p-3.5 rounded-2xl max-w-[85%] text-xs leading-relaxed shadow-2xs ${
-                        isAgent
-                          ? 'bg-primary text-primary-foreground rounded-tr-xs'
-                          : 'bg-card border border-border text-card-foreground rounded-tl-xs'
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
+                  <Marker key={msg.id} variant="separator" className="my-2 text-[11px]">
+                    <MarkerContent>{msg.content}</MarkerContent>
+                  </Marker>
                 );
-              })}
-            </div>
+              }
+
+              const isAgent = msg.type === 'agent' || msg.type === 'ai';
+
+              return (
+                <div key={msg.id} className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}>
+                  {/* Author + time label */}
+                  <div className="flex items-center gap-1.5 mb-1 px-1">
+                    {!isAgent && (
+                      <span className="text-[10px] font-semibold text-muted-foreground capitalize">
+                        {msg.type === 'customer' ? ticket.customerName : msg.type}
+                      </span>
+                    )}
+                    {isAgent && (
+                      <span className="text-[10px] font-semibold text-muted-foreground capitalize">
+                        {msg.type === 'ai' ? 'AI Agent' : 'Agent'}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground/60">
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`max-w-[80%] px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                      isAgent
+                        ? msg.type === 'ai'
+                          ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm'
+                          : 'bg-secondary text-secondary-foreground rounded-2xl rounded-tr-sm'
+                        : 'bg-card border border-border text-foreground rounded-2xl rounded-tl-sm'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              );
+            })
           ) : (
-            <div className="text-xs text-muted-foreground text-center py-4">No messages yet.</div>
+            <p className="text-xs text-muted-foreground text-center py-6">No messages yet.</p>
           )}
         </div>
 
-        {/* Reply Input Box */}
-        <form onSubmit={handleSendReply} className="pt-2">
-          <div className="p-3 bg-card border border-border rounded-xl shadow-2xs space-y-2">
+        {/* Bottom anchor for auto-scrolling */}
+        <div ref={messagesEndRef} className="h-4" />
+      </div>
+
+      {/* ── Sticky footer: reply input & send button ── */}
+      <div className="shrink-0 border-t border-border bg-card p-3">
+        <form onSubmit={handleSendReply} className="flex items-end gap-2">
+          <div className="flex-1 bg-muted/40 border border-border/80 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 rounded-2xl p-3 transition-all">
             <textarea
-              rows={3}
+              rows={2}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (replyText.trim()) handleSendReply(e as any);
+                }
+              }}
               placeholder={`Reply to ${ticket.customerName}...`}
-              className="w-full bg-transparent text-foreground text-xs placeholder:text-muted-foreground outline-none resize-none"
+              className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none leading-relaxed"
             />
-            <div className="flex items-center justify-between pt-2 border-t border-border/60">
-              <span className="text-[11px] text-muted-foreground">Shift + Enter for new line</span>
-              <button
-                type="submit"
-                disabled={!replyText.trim() || postMessageMutation.isPending}
-                className="px-4 py-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
-              >
-                {postMessageMutation.isPending ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Send className="w-3.5 h-3.5" />
-                )}
-                <span>Send Reply</span>
-              </button>
-            </div>
           </div>
+
+          {/* Send button */}
+          <button
+            type="submit"
+            disabled={!replyText.trim() || postMessageMutation.isPending}
+            className="w-11 h-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center shadow-sm transition-all disabled:opacity-40 shrink-0 mb-1"
+            title="Send Reply"
+          >
+            {postMessageMutation.isPending ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </button>
         </form>
       </div>
+
     </div>
   );
 }

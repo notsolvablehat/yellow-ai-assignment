@@ -58,12 +58,24 @@ export const db = {
   },
 
   addMessage(ticketId: string, content: string, type: MessageAuthorType = 'agent'): Message {
+    const existingMessages = this.getMessages(ticketId);
+    const lastMsg = existingMessages[existingMessages.length - 1];
+
+    let createdAt = new Date().toISOString();
+    if (lastMsg) {
+      const lastTime = new Date(lastMsg.createdAt).getTime();
+      const nowTime = new Date(createdAt).getTime();
+      if (nowTime <= lastTime) {
+        createdAt = new Date(lastTime + 1000).toISOString();
+      }
+    }
+
     const message: Message = {
       id: `msg-${crypto.randomUUID().slice(0, 8)}`,
       ticketId,
       type,
       content,
-      createdAt: new Date().toISOString(),
+      createdAt,
     };
     messages.push(message);
 

@@ -1,6 +1,5 @@
 import type { TicketSummary, TicketPriority } from '../../types/ticket';
 import { Badge } from '../ui/badge';
-import { Card } from '../ui/card';
 
 interface TicketCardProps {
   ticket: TicketSummary;
@@ -9,81 +8,62 @@ interface TicketCardProps {
 }
 
 export function TicketCard({ ticket, isSelected, onSelect }: TicketCardProps) {
-  // Format wait time / message time
   const formattedTime = ticket.waitTimeMinutes >= 60
     ? `${Math.floor(ticket.waitTimeMinutes / 60)}h`
     : `${ticket.waitTimeMinutes}m`;
 
-  // Priority Dot styles
   const getPriorityDot = (priority: TicketPriority) => {
     switch (priority) {
-      case 'high':
-        return 'bg-rose-500 ring-rose-200';
-      case 'medium':
-        return 'bg-amber-400 ring-amber-200';
-      case 'low':
-      default:
-        return 'bg-slate-400 ring-slate-200';
+      case 'high': return 'bg-rose-500 ring-rose-200';
+      case 'medium': return 'bg-amber-400 ring-amber-200';
+      default: return 'bg-slate-300 ring-slate-100';
     }
   };
 
-  // Escalation Badge styles
   const getEscalationBadge = (reason: string) => {
     const lower = reason.toLowerCase();
-    if (lower.includes('csat')) {
-      return 'bg-amber-100 text-amber-900 border-amber-300 font-medium';
-    }
-    if (lower.includes('escalated') || lower.includes('high') || lower.includes('urgent')) {
-      return 'bg-rose-100 text-rose-900 border-rose-300 font-medium';
-    }
-    return 'bg-purple-100 text-purple-900 border-purple-200 font-medium';
+    if (lower.includes('csat'))
+      return 'bg-amber-100 text-amber-900 border-amber-200';
+    if (lower.includes('escalated') || lower.includes('urgent'))
+      return 'bg-rose-100 text-rose-900 border-rose-200';
+    return 'bg-secondary/10 text-secondary border-secondary/20';
   };
 
   return (
-    <Card
+    <div
       onClick={() => onSelect(ticket.id)}
-      className={`p-4 cursor-pointer transition-all border relative group ${
+      className={`relative flex flex-col gap-2 p-3.5 rounded-xl cursor-pointer transition-all border ${
         isSelected
-          ? 'bg-purple-50/80 border-primary/60 ring-2 ring-primary/20 shadow-xs'
-          : 'bg-card hover:bg-muted/40 border-border/80 hover:border-primary/40'
+          ? 'bg-[#E4DBFD] shadow-sm border-[#29165E33]'
+          : 'bg-card hover:bg-muted/40'
       }`}
     >
-      {/* Top Header: Customer Name & Priority Dot + Time */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="font-semibold text-sm text-foreground tracking-tight line-clamp-1">
+      {/* Header row: name + time + priority dot */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold text-sm text-foreground tracking-tight line-clamp-1">
           {ticket.customerName}
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground font-medium">{formattedTime}</span>
+        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[11px] text-muted-foreground tabular-nums">{formattedTime}</span>
           <span
             title={`Priority: ${ticket.priority}`}
-            className={`w-2.5 h-2.5 rounded-full ring-2 ${getPriorityDot(ticket.priority)}`}
+            className={`w-2 h-2 rounded-full ring-2 shrink-0 ${getPriorityDot(ticket.priority)}`}
           />
         </div>
       </div>
 
-      {/* Escalation Reason Badge */}
-      <div className="mt-2">
-        <Badge variant="outline" className={`text-xs py-0.5 px-2.5 rounded-md ${getEscalationBadge(ticket.escalationReason)}`}>
-          {ticket.escalationReason}
-        </Badge>
-      </div>
+      {/* Escalation reason badge */}
+      <Badge
+        variant="outline"
+        className={`w-fit text-[11px] font-medium py-0.5 px-2 rounded-md ${getEscalationBadge(ticket.escalationReason)}`}
+      >
+        {ticket.escalationReason}
+      </Badge>
 
-      {/* Last Message Preview */}
-      <p className="text-xs text-muted-foreground line-clamp-2 mt-2.5 leading-relaxed">
+      {/* Message preview */}
+      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
         {ticket.lastMessagePreview}
       </p>
-
-      {/* Tags Swatches (if present on Detail or summary tags) */}
-      <div className="flex flex-wrap gap-1 mt-3">
-        <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground font-medium rounded-full border border-border/40">
-          #{ticket.id}
-        </span>
-        <span className="text-[10px] px-2 py-0.5 bg-secondary/10 text-secondary font-medium rounded-full">
-          {ticket.status}
-        </span>
-      </div>
-    </Card>
+    </div>
   );
 }

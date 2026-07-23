@@ -38,22 +38,19 @@ export function Sidebar({ activeTab, onSelectTab, isMobileOpen, onCloseMobile }:
   ];
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border w-60 p-4">
-      {/* Top Header / Workspace info */}
-      <div className="flex items-center justify-between pb-6 border-b border-sidebar-border/60 mb-4">
-        <div>
-          <h2 className="font-heading font-bold text-base text-foreground">The Conversation Inbox</h2>
-          <p className="text-xs text-muted-foreground font-medium">Triage Desk</p>
-        </div>
-        {isMobileOpen && (
+    <div className="flex flex-col h-full bg-card/80 text-sidebar-foreground border-r border-sidebar-border w-60 p-4">
+      {/* Mobile Drawer Close Header */}
+      {isMobileOpen && (
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-sidebar-border/60 lg:hidden">
+          <span className="font-heading font-semibold text-sm text-foreground">Menu</span>
           <button
             onClick={onCloseMobile}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground lg:hidden"
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Main Nav Items */}
       <nav className="flex-1 space-y-1">
@@ -75,7 +72,7 @@ export function Sidebar({ activeTab, onSelectTab, isMobileOpen, onCloseMobile }:
                 item.disabled
                   ? 'opacity-40 cursor-not-allowed text-sidebar-foreground/60'
                   : isActive
-                  ? 'bg-primary text-primary-foreground shadow-2xs font-semibold'
+                  ? 'bg-[#E4DBFD] text-primary shadow-2xs font-semibold'
                   : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
               }`}
             >
