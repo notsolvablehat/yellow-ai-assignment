@@ -20,6 +20,7 @@ import { TicketSkeleton } from '../inbox/TicketSkeleton';
 
 interface TicketDetailViewProps {
   ticketId: string | null;
+  isInboxLoading?: boolean;
   onBackToInbox: () => void;
   /** Move to the next ticket in the inbox list */
   onSelectNextTicket: () => void;
@@ -27,7 +28,7 @@ interface TicketDetailViewProps {
   onResolveTicket: () => void;
 }
 
-export function TicketDetailView({ ticketId, onBackToInbox, onSelectNextTicket, onResolveTicket }: TicketDetailViewProps) {
+export function TicketDetailView({ ticketId, isInboxLoading, onBackToInbox, onSelectNextTicket, onResolveTicket }: TicketDetailViewProps) {
   const [replyText, setReplyText] = useState('');
   const [statusError, setStatusError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +38,13 @@ export function TicketDetailView({ ticketId, onBackToInbox, onSelectNextTicket, 
 
   const updateStatusMutation = useUpdateTicketStatus();
   const postMessageMutation = usePostMessage(ticketId ?? '');
+
+  const [prevTicketId, setPrevTicketId] = useState(ticketId);
+  if (ticketId !== prevTicketId) {
+    setPrevTicketId(ticketId);
+    setStatusError(null);
+    updateStatusMutation.reset();
+  }
 
   // Ctrl+. → resolve current ticket (only active when a ticket is open and not already resolved)
   useHotkeys(
@@ -55,6 +63,19 @@ export function TicketDetailView({ ticketId, onBackToInbox, onSelectNextTicket, 
     }
   }, [messages]);
 
+  // 1. Show skeleton while inbox is loading or individual ticket is loading
+  if (isInboxLoading || (isTicketLoading && ticketId)) {
+    return (
+      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+        <Skeleton className="h-10 w-52 rounded-lg" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <TicketSkeleton />
+      </div>
+    );
+  }
+
+  // 2. Show empty state only when inbox is done loading and no ticket is selected
   if (!ticketId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
@@ -65,17 +86,6 @@ export function TicketDetailView({ ticketId, onBackToInbox, onSelectNextTicket, 
         <p className="text-xs text-muted-foreground max-w-xs mt-1.5">
           Select a ticket from the inbox to view customer details and conversation history.
         </p>
-      </div>
-    );
-  }
-
-  if (isTicketLoading) {
-    return (
-      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-        <Skeleton className="h-10 w-52 rounded-lg" />
-        <Skeleton className="h-20 w-full rounded-xl" />
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <TicketSkeleton />
       </div>
     );
   }
@@ -153,30 +163,38 @@ export function TicketDetailView({ ticketId, onBackToInbox, onSelectNextTicket, 
         </div>
         {/* Top Right Action: Resolve / Re-open Ticket */}
         <div>
-          {ticket.status !== 'resolved' ? (
-            <button
-              type="button"
-              onClick={() => handleStatusChange('resolved')}
-              disabled={updateStatusMutation.isPending}
-              className="px-3.5 py-1.5 text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 rounded-full transition-all shadow-xs inline-flex items-center gap-1.5 disabled:opacity-60"
-            >
-              {updateStatusMutation.isPending ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              )}
-              <span>Resolve Issue</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => handleStatusChange('open')}
-              disabled={updateStatusMutation.isPending}
-              className="px-3.5 py-1.5 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 rounded-full transition-colors inline-flex items-center gap-1.5"
-            >
-              Re-open Ticket
-            </button>
-          )}
+          {(() => {
+            const isUpdatingStatus =
+              updateStatusMutation.isPending &&
+              updateStatusMutation.variables?.id === ticket.id;
+            return ticket.status !== 'resolved' ? (
+              <button
+                type="button"
+                onClick={() => handleStatusChange('resolved')}
+                disabled={isUpdatingStatus}
+                className="px-3.5 py-1.5 text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 rounded-full transition-all shadow-xs inline-flex items-center gap-1.5 disabled:opacity-60"
+              >
+                {isUpdatingStatus ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
+                <span>Resolve Issue</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleStatusChange('open')}
+                disabled={isUpdatingStatus}
+                className="px-3.5 py-1.5 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 rounded-full transition-colors inline-flex items-center gap-1.5 disabled:opacity-60"
+              >
+                {isUpdatingStatus ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : null}
+                <span>Re-open Ticket</span>
+              </button>
+            );
+          })()}
         </div>
       </div>
 

@@ -257,6 +257,7 @@ function MainLayout() {
           >
             <TicketDetailView
               ticketId={activeTicketId}
+              isInboxLoading={isLoading}
               onBackToInbox={() => setMobileView('list')}
               onSelectNextTicket={selectNextTicket}
               onResolveTicket={resolveCurrentTicket}
